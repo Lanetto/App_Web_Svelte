@@ -1,5 +1,26 @@
 <script lang="ts">
     let {data}=  $props() ;
+
+    let category = $state(''); // Rendo la variabile reattiva per il tipo di carta selezionato
+    let monsterSybtype=$state(''); // Rendo la variabile reattiva per il sottotipo di mostro selezionato
+
+    // Calcola se il tipo di carta selezionato è un mostro, una magia o una trappola e aggiorna le variabili sul momento
+    let isMonster=$derived(category==='Monster');
+    let isSpell=$derived(category==='Spell');
+    let isTrap=$derived(category==='Trap');
+
+    let finalType=$derived.by(() => {
+        if (isMonster) {
+            return monsterSybtype;
+        } else if (isSpell) {
+            return 'Spell Card';
+        } else if (isTrap) {
+            return 'Trap Card';
+        } else {
+            return '';
+        }
+    });
+
 </script>
 
 <h1>Ricerca Carte</h1>
@@ -12,8 +33,17 @@
         value={data.filters.fname ?? ''}
     />
 
-    <select name="type">
+    <select bind:value={category}>
         <option value="">Tipo di carta</option>
+        <option value="Monster">Mostro</option>
+        <option value="Spell">Magia</option>
+        <option value="Trap">Trappola</option>
+    </select>
+
+    {#if isMonster}
+
+    <select bind:value={monsterSybtype}>
+        <option value="">Tipo di Mostro</option>
         <option value="Normal Monster">Mostro Normale</option>
         <option value="Effect Monster">Mostro con Effetto</option>
         <option value="Ritual Monster">Mostro Rituale</option>
@@ -22,8 +52,6 @@
         <option value="XYZ Monster">Mostro XYZ</option>
         <option value="Pendolum Monster">Mostro Pendolum</option>
         <option value="Link Monster">Mostro Link</option>
-        <option value="Spell Card">Magia</option>
-        <option value="Trap Card">Trappola</option>
     </select>
 
     <input
@@ -34,6 +62,7 @@
         max="12"
         value={data.filters.level}
     />
+    
 
     <select name="attribute">
         <option value="">Attributo</option>
@@ -73,17 +102,33 @@
         <option value="Winged Beast">Bestia Alata</option>
         <option value="Wyrm">Wyrm</option>
         <option value="Zombie">Zombie</option>
+    </select>
+
+    {/if}
+
+    {#if isSpell}
+    <select name="race">
+        <option value="">Tipo di Magia</option>
         <option value="Normal">Magia Normale</option>
         <option value="Field">Magia Terreno</option>
         <option value="Equip">Magia Equipaggiamento</option>
         <option value="Continuous">Magia Continua</option>
         <option value="Quick-Play">Magia Rapida</option>
-        <option value="Ritual">Magia Ritual</option>
-        <option value="Normal">Trappola Normale</option>
-        <option value="Continuous">Trappola Continuoua</option>
-        <option value="Counter">Contro-Trappola</option>
+        <option value="Ritual">Magia Rituale</option>
     </select>
         
+    {/if}
+
+    {#if isTrap}
+    <select name="race">
+        <option value="">Tipo di Trappola</option>
+        <option value="Normal">Trappola Normale</option>
+        <option value="Continuous">Trappola Continua</option>
+        <option value="Counter">Contro-Trappola</option>
+    </select>
+    {/if}
+
+    <input type="hidden" name ="type" value={finalType} />
 
     <button type="submit">Cerca</button>
 </form>
