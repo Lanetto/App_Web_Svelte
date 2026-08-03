@@ -28,9 +28,9 @@
 <form>
     <input 
         type="text"
-        name="fname"
+        name="name"
         placeholder="Cerca una carta"
-        value={data.filters.fname ?? ''}
+        value={data.filters.name ?? ''}
     />
 
     <select bind:value={category}>
@@ -56,11 +56,20 @@
 
     <input
         type="number" 
-        name="level"
-        placeholder="Livello (0-12)"
+        name="levelMin"
+        placeholder="Livello Minimo (0-12)"
         min="0"
         max="12"
-        value={data.filters.level}
+        value={data.filters.levelMin }
+    />
+
+    <input
+        type="number" 
+        name="levelMax"
+        placeholder="Livello Massimo (0-12)"
+        min="0"
+        max="12"
+        value={data.filters.levelMax }
     />
     
 
@@ -104,6 +113,38 @@
         <option value="Zombie">Zombie</option>
     </select>
 
+    <input
+        type="number"
+        name="atkMin"
+        placeholder="ATK Minimo"
+        min="0"
+        value={data.filters.atkMin }
+    />
+
+    <input
+        type="number"
+        name="atkMax"
+        placeholder="ATK Massimo"
+        min="0"
+        value={data.filters.atkMax }
+    />
+
+    <input
+        type="number"
+        name="defMin"
+        placeholder="DEF Minima"
+        min="0"
+        value={data.filters.defMin }
+    />
+
+    <input
+        type="number"
+        name="defMax"
+        placeholder="DEF Massima"
+        min="0"
+        value={data.filters.defMax }
+    />
+
     {/if}
 
     {#if isSpell}
@@ -133,9 +174,44 @@
     <button type="submit">Cerca</button>
 </form>
 
-{#each data.cards as card}
-    <div>
-        <img src={card.card_images[0].image_url_small} alt={card.name}/>
-        <p>{card.name}</p>
-    </div>
-{/each}
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
+	{#each data.cards as card}
+		<div class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+			{#if card.imageUrl}
+				<img src={card.imageUrl} alt={card.name} class="w-full h-48 object-contain bg-gray-100" />
+			{/if}
+
+			<div class="p-4 flex flex-col gap-2">
+				<h2 class="text-lg font-bold text-gray-900">{card.name}</h2>
+				<p class="text-sm text-gray-500">{card.type}</p>
+
+				<div class="flex flex-wrap gap-2 text-xs">
+					{#if card.attribute}
+						<span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-medium">
+							{card.attribute}
+						</span>
+					{/if}
+					{#if card.race}
+						<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-medium">
+							{card.race}
+						</span>
+					{/if}
+					{#if card.level}
+						<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium">
+							Lv. {card.level}
+						</span>
+					{/if}
+				</div>
+
+				{#if card.atk !== null || card.def !== null}
+					<p class="text-sm font-mono text-gray-700">
+						{#if card.atk !== null}ATK/{card.atk}{/if}
+						{#if card.def !== null}&nbsp;DEF/{card.def}{/if}
+					</p>
+				{/if}
+
+				<p class="text-sm text-gray-600 line-clamp-4">{card.desc}</p>
+			</div>
+		</div>
+	{/each}
+</div>
