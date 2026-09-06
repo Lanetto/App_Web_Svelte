@@ -1,6 +1,6 @@
 import {searchCards} from '$lib/server/db/cardService';
-import type {PageServerLoad} from './$types';
-
+import type {PageServerLoad, Actions} from './$types';
+import { addCardToDeck } from '$lib/server/db/deckService';
 
 /* Ricerca carta: load riceve l'URL dal quale estrae il parametro di ricerca q
     se non è presente, restituisce un array vuoto. Ritorniamo anche la query così
@@ -57,3 +57,14 @@ export const load: PageServerLoad = async ({url}) => {
         cards, filters
     };
 };  
+
+export const actions: Actions={
+    addToDeck: async ({request})=>{
+        const formData=await request.formData();
+        const cadrId=Number(formData.get('cardId'));
+
+        const result=await addCardToDeck(cadrId);
+
+        return result;
+    }
+}

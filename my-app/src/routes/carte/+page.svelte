@@ -1,6 +1,6 @@
 <script lang="ts">
-    let {data}=  $props() ;
-
+    let {data, form}=  $props() ;
+    
     let category = $state(''); // Rendo la variabile reattiva per il tipo di carta selezionato
     let monsterSybtype=$state(''); // Rendo la variabile reattiva per il sottotipo di mostro selezionato
 
@@ -22,6 +22,10 @@
     });
 
 </script>
+
+    {#if form?.message}
+        <p class="text-red-600 text-center p-2">{form.message}</p>
+    {/if}
 
 <h1>Ricerca Carte</h1>
 
@@ -176,12 +180,12 @@
 
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
 	{#each data.cards as card}
-		<div class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+		<div class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full">
 			{#if card.imageUrl}
 				<img src={card.imageUrl} alt={card.name} class="w-full h-48 object-contain bg-gray-100" />
 			{/if}
 
-			<div class="p-4 flex flex-col gap-2">
+			<div class="p-4 flex flex-col gap-2 flex-1">
 				<h2 class="text-lg font-bold text-gray-900">{card.name}</h2>
 				<p class="text-sm text-gray-500">{card.type}</p>
 
@@ -206,11 +210,17 @@
 				{#if card.atk !== null || card.def !== null}
 					<p class="text-sm font-mono text-gray-700">
 						{#if card.atk !== null}ATK/{card.atk}{/if}
-						{#if card.def !== null}&nbsp;DEF/{card.def}{/if}
+						{#if card.def !== null}DEF/{card.def}{/if}
 					</p>
 				{/if}
 
-				<p class="text-sm text-gray-600 line-clamp-4">{card.desc}</p>
+				<p class="text-sm text-gray-600">{card.desc}</p>
+                
+                <form method="POST" action="?/addToDeck" class="flex justify-center mt-auto pt-2">
+                    <input type="hidden" name="cardId" value={card.id} />
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md font-medium hover:bg-indigo-700 ">Aggiungi al Mazzo</button>
+                </form>
+                
 			</div>
 		</div>
 	{/each}

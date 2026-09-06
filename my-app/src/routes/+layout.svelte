@@ -12,6 +12,7 @@
 <nav>
 	<a href="/">Home</a>
 	<a href="/carte">Carte</a>
+	<a href="/deck">Deck</a>
 </nav>
 
 <main>
