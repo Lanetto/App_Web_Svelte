@@ -29,6 +29,30 @@ export async function addCardToDeck(cardId: number) {
     
 }
 
+export async function removeCardFromDeck(cardId: number) {
+	const existing = await db
+		.select()
+		.from(deckCards)
+		.where(eq(deckCards.cardId, cardId));
+
+	if (existing.length === 0) {
+		return; 
+	}
+
+	const newQuantity = existing[0].quantity - 1;
+
+	if (newQuantity <= 0) {
+		await db
+			.delete(deckCards)
+			.where(eq(deckCards.cardId, cardId));
+	} else {
+		await db
+			.update(deckCards)
+			.set({ quantity: newQuantity })
+			.where(eq(deckCards.cardId, cardId));
+	}
+}
+
 export async function getDeck() {
     const result=await db
         .select({

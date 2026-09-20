@@ -13,5 +13,9 @@
 				class="w-24 rounded-md shadow-sm"
 			/>
 		{/each}
+		<form method="POST" action="?/removeFromDeck">
+			<input type="hidden" name="cardId" value={deckCard.cardId} />
+			<button type="submit">Rimuovi</button>
+		</form>
 	{/each}
 </div>
