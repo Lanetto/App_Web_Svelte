@@ -1,11 +1,19 @@
 import { resolveRoute } from '$app/paths';
 import {db} from './index';
 import { cards, deckCards } from './schema';
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 const MAX_COPIES=3;
+const MAx_CARDS=60;
 
 export async function addCardToDeck(cardId: number) {
+
+    const totalInDeck=await getDeckTotalCards();
+
+    if (totalInDeck >= MAx_CARDS) {
+        return{succes: false, message: `Il mazzo ha già raggiunto il massimo di ${MAx_CARDS} carte`}
+    }
+
     const existing=await db
         .select()
         .from(deckCards)
@@ -72,4 +80,12 @@ export async function getDeck() {
         .innerJoin(cards, eq(deckCards.cardId, cards.id));
 
         return result;
+}
+
+export async function getDeckTotalCards(): Promise<number> {
+    const result=await db
+        .select({total: sql<number>`sum(${deckCards.quantity})`})
+        .from(deckCards);
+        
+        return result[0].total ?? 0;
 }

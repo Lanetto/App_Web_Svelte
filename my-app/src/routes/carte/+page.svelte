@@ -1,5 +1,19 @@
 <script lang="ts">
+
+    import {enhance} from '$app/forms'
+	import { fromAction } from 'svelte/attachments';
+
     let {data, form}=  $props() ;
+
+    let showErrorPopup=$state(false);
+    let errorMessage=$state('');
+
+    $effect(() => {
+        if (form?.message) {
+            errorMessage=form.message;
+            showErrorPopup=true;
+        }
+    });
     
     let category = $state(''); // Rendo la variabile reattiva per il tipo di carta selezionato
     let monsterSybtype=$state(''); // Rendo la variabile reattiva per il sottotipo di mostro selezionato
@@ -22,10 +36,6 @@
     });
 
 </script>
-
-    {#if form?.message}
-        <p class="text-red-600 text-center p-2">{form.message}</p>
-    {/if}
 
 <h1>Ricerca Carte</h1>
 
@@ -216,7 +226,7 @@
 
 				<p class="text-sm text-gray-600">{card.desc}</p>
                 
-                <form method="POST" action="?/addToDeck" class="flex justify-center mt-auto pt-2">
+                <form method="POST" action="?/addToDeck" use:enhance class="flex justify-center mt-auto pt-2">
                     <input type="hidden" name="cardId" value={card.id} />
                     <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md font-medium hover:bg-indigo-700 ">Aggiungi al Mazzo</button>
                 </form>
@@ -225,3 +235,18 @@
 		</div>
 	{/each}
 </div>
+
+
+{#if showErrorPopup}
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+		<div class="bg-gray-500/95 rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+			<p class="text-black mb-4">{errorMessage}</p>
+			<button
+				onclick={() => (showErrorPopup = false)}
+				class="bg-red-500 text-white px-4 py-2 rounded-md w-full hover:bg-red-700"
+			>
+				Chiudi
+			</button>
+		</div>
+	</div>
+{/if}
