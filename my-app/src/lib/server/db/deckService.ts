@@ -11,7 +11,7 @@ export async function addCardToDeck(cardId: number) {
     const totalInDeck=await getDeckTotalCards();
 
     if (totalInDeck >= MAx_CARDS) {
-        return{succes: false, message: `Il mazzo ha già raggiunto il massimo di ${MAx_CARDS} carte`}
+        return{success: false, message: `Il mazzo ha già raggiunto il massimo di ${MAx_CARDS} carte`}
     }
 
     const existing=await db
@@ -34,6 +34,10 @@ export async function addCardToDeck(cardId: number) {
         await db
             .insert(deckCards).values({cardId, quantity:1});
     }
+
+    const newTotal=await getDeckTotalCards();
+
+    return {success: true, total: newTotal};
     
 }
 

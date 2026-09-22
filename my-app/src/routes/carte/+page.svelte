@@ -8,12 +8,26 @@
     let showErrorPopup=$state(false);
     let errorMessage=$state('');
 
+    let showSuccess=$state(false);
+
     $effect(() => {
+        if (form?.success) {
+            showSuccess=true;
+
+            const timeout=setTimeout(() =>{
+                showSuccess=false;
+            }, 2000);
+
+            return () => clearTimeout(timeout);
+        }
+
         if (form?.message) {
             errorMessage=form.message;
             showErrorPopup=true;
         }
     });
+
+    
     
     let category = $state(''); // Rendo la variabile reattiva per il tipo di carta selezionato
     let monsterSybtype=$state(''); // Rendo la variabile reattiva per il sottotipo di mostro selezionato
@@ -239,7 +253,7 @@
 
 {#if showErrorPopup}
     <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-		<div class="bg-gray-500/95 rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+		<div class="bg-gray-500/95  rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
 			<p class="text-black mb-4">{errorMessage}</p>
 			<button
 				onclick={() => (showErrorPopup = false)}
@@ -249,4 +263,10 @@
 			</button>
 		</div>
 	</div>
+{/if}
+
+{#if showSuccess}
+    <div class="fixed bottom-6 right-6 bg-green-400 text-white px-4 py-3 rounded-lg shadow-lg z-50">
+        Carta aggiunta al Mazzo ({form?.total}/60)
+    </div>
 {/if}
