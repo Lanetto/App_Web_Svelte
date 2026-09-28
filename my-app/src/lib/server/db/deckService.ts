@@ -1,51 +1,93 @@
 import { resolveRoute } from '$app/paths';
+import { setDefaultCACertificates } from 'tls';
 import {db} from './index';
 import { cards, deckCards } from './schema';
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
+
+export type Zone= 'main'|'extra'|'side';
 
 const MAX_COPIES=3;
-const MAx_CARDS=60;
+const EXTRA_DECK_TYPES=['Fusion Monster', 'Synchro Monster', 'XYZ Monster', 'Link Monster'];
 
-export async function addCardToDeck(cardId: number) {
+const LIMITS: Record<Zone, number>={main:60, extra:15, side:15};
+const LABELS: Record<Zone, string>={main:'Main Deck', extra:'Extra Deck', side:'Side Deck'};
 
-    const totalInDeck=await getDeckTotalCards();
-
-    if (totalInDeck >= MAx_CARDS) {
-        return{success: false, message: `Il mazzo ha già raggiunto il massimo di ${MAx_CARDS} carte`}
-    }
-
-    const existing=await db
-        .select()
+export async function getZoneTotal(zone: Zone): Promise<number> {
+    const result=await db
+        .select({total:sql<number>`sum(${deckCards.quantity})`})
         .from(deckCards)
-        .where(eq(deckCards.cardId, cardId));
+        .where(eq(deckCards.zone, zone));
 
-    if(existing.length>0){
-        const currentQuantity = existing[0].quantity;
-
-		if (currentQuantity >= MAX_COPIES) {
-			return { success: false, message: `Hai già il massimo di ${MAX_COPIES} copie di questa carta` };
-		}
-        await db
-            .update(deckCards)
-            .set({quantity: existing[0].quantity+1})
-            .where(eq(deckCards.cardId, cardId));
-    }
-    else{
-        await db
-            .insert(deckCards).values({cardId, quantity:1});
-    }
-
-    const newTotal=await getDeckTotalCards();
-
-    return {success: true, total: newTotal};
+        return result[0].total ?? 0;
     
 }
 
-export async function removeCardFromDeck(cardId: number) {
+export async function addCardToDeck(cardId: number, target?: string) {
+
+    const found=await db
+        .select()
+        .from(cards)
+        .where(eq(cards.id, cardId));
+
+    let zone: Zone;
+    if (target=== 'side'){
+        zone='side';
+    }
+    else {
+        zone=EXTRA_DECK_TYPES.includes(found[0].type) ? 'extra' : 'main';
+    }
+
+    const zoneTotal= await getZoneTotal(zone);
+    if (zoneTotal>=LIMITS[zone]) {
+        return {
+            success:false,
+            message: `${LABELS[zone]} ha già raggiunto il massimo di ${LIMITS[zone]} carte`
+        };
+    }
+
+    const rows= await db
+    .select()
+    .from(deckCards)
+    .where(eq(deckCards.cardId, cardId));
+
+    const totalCopies=rows.reduce((sum, row)=> sum+row.quantity, 0);
+
+    if (totalCopies>=MAX_COPIES) {
+        return{
+            success: false,
+            message: `Hai già il massimo di ${MAX_COPIES} copie di questa carta`
+        }
+    }
+
+    const existingInZone=rows.find((row)=> row.zone===zone);
+
+    if (existingInZone) {
+        await db
+            .update(deckCards)
+            .set({ quantity: existingInZone.quantity+1 })
+            .where(eq(deckCards.id, existingInZone.id));
+    }
+    else {
+        await db
+            .insert(deckCards)
+            .values({cardId, quantity:1, zone});
+    }
+
+    return{
+        succes:true,
+        zoneLabel: LABELS[zone],
+        total:zoneTotal+1,
+        limit:LIMITS[zone]
+    };
+}
+
+
+
+export async function removeCardFromDeck(cardId: number, zone: Zone) {
 	const existing = await db
 		.select()
 		.from(deckCards)
-		.where(eq(deckCards.cardId, cardId));
+		.where(and(eq(deckCards.cardId, cardId), eq(deckCards.zone, zone)));
 
 	if (existing.length === 0) {
 		return; 
@@ -56,12 +98,12 @@ export async function removeCardFromDeck(cardId: number) {
 	if (newQuantity <= 0) {
 		await db
 			.delete(deckCards)
-			.where(eq(deckCards.cardId, cardId));
+			.where(eq(deckCards.cardId, existing[0].id));
 	} else {
 		await db
 			.update(deckCards)
 			.set({ quantity: newQuantity })
-			.where(eq(deckCards.cardId, cardId));
+			.where(eq(deckCards.cardId, existing[0].id));
 	}
 }
 

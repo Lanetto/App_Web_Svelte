@@ -62,8 +62,9 @@ export const actions: Actions={
     addToDeck: async ({request})=>{
         const formData=await request.formData();
         const cardId=Number(formData.get('cardId'));
+        const target=formData.get('target')?.toString();
 
-        const result=await addCardToDeck(cardId);
+        const result=await addCardToDeck(cardId, target);
 
         return result;
     }

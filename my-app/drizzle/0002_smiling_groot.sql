@@ -1,0 +1,1 @@
+ALTER TABLE `deck_cards` ADD `zone` text DEFAULT 'main' NOT NULL;

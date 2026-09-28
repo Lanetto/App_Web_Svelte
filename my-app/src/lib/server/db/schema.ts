@@ -16,5 +16,6 @@ export const cards=sqliteTable("cards", {
 export const deckCards= sqliteTable('deck_cards', {
     id: integer('id').primaryKey({autoIncrement:true}),
     cardId: integer('card_id').notNull().references(()=>cards.id),
-    quantity: integer('quantity').notNull().default(1)
+    quantity: integer('quantity').notNull().default(1),
+    zone: text('zone', {enum:['main', 'extra', 'side']}).notNull().default('main')
 });

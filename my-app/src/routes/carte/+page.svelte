@@ -242,7 +242,8 @@
                 
                 <form method="POST" action="?/addToDeck" use:enhance class="flex justify-center mt-auto pt-2">
                     <input type="hidden" name="cardId" value={card.id} />
-                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md font-medium hover:bg-indigo-700 ">Aggiungi al Mazzo</button>
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md font-medium hover:bg-indigo-700 ">Al Main</button>
+                    <button type="submit" name="target" value="side" class="bg-gray-600 text-white px-3 py-2 rounded-md text-sm hover:bg-gray-700">Al Side</button>
                 </form>
                 
 			</div>
@@ -267,6 +268,6 @@
 
 {#if showSuccess}
     <div class="fixed bottom-6 right-6 bg-green-400 text-white px-4 py-3 rounded-lg shadow-lg z-50">
-        Carta aggiunta al Mazzo ({form?.total}/60)
+        Carta aggiunta al {form?.zoneLabel} ({form?.total}/{form?.limit})
     </div>
 {/if}
