@@ -1,7 +1,6 @@
 <script lang="ts">
 
     import {enhance} from '$app/forms'
-	import { fromAction } from 'svelte/attachments';
 
     let {data, form}=  $props() ;
 

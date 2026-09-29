@@ -74,7 +74,7 @@ export async function addCardToDeck(cardId: number, target?: string) {
     }
 
     return{
-        succes:true,
+        success:true,
         zoneLabel: LABELS[zone],
         total:zoneTotal+1,
         limit:LIMITS[zone]
