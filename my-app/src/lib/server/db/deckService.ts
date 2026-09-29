@@ -98,12 +98,12 @@ export async function removeCardFromDeck(cardId: number, zone: Zone) {
 	if (newQuantity <= 0) {
 		await db
 			.delete(deckCards)
-			.where(eq(deckCards.cardId, existing[0].id));
+			.where(eq(deckCards.id, existing[0].id));
 	} else {
 		await db
 			.update(deckCards)
 			.set({ quantity: newQuantity })
-			.where(eq(deckCards.cardId, existing[0].id));
+			.where(eq(deckCards.id, existing[0].id));
 	}
 }
 
@@ -120,7 +120,8 @@ export async function getDeck() {
             atk:cards.atk,
             def:cards.def,
             imageUrl:cards.imageUrl,
-            quantity:deckCards.quantity
+            quantity:deckCards.quantity,
+            zone: deckCards.zone
         })
         .from(deckCards)
         .innerJoin(cards, eq(deckCards.cardId, cards.id));

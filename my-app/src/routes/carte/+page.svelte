@@ -242,8 +242,10 @@
                 
                 <form method="POST" action="?/addToDeck" use:enhance class="flex justify-center mt-auto pt-2">
                     <input type="hidden" name="cardId" value={card.id} />
+                    <div class="flex gap-2">
                     <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md font-medium hover:bg-indigo-700 ">Al Main</button>
                     <button type="submit" name="target" value="side" class="bg-gray-600 text-white px-3 py-2 rounded-md text-sm hover:bg-gray-700">Al Side</button>
+                    </div>
                 </form>
                 
 			</div>
