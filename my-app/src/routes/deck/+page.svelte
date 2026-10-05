@@ -13,6 +13,9 @@
 	let extraDeck=$derived(data.deck.filter((deckCard)=>deckCard.zone==='extra'));
 
 	let sideDeck=$derived(data.deck.filter((deckCard)=>deckCard.zone==='side'));
+
+	let showDropError = $state(false);
+	let dropErrorMessage = $state('');
     
 	const countCards=(list: {quantity: number}[])=>
 		list.reduce((sum, deckCard)=>sum+deckCard.quantity, 0);
@@ -69,6 +72,7 @@
 		if (!draggedCard) return;
 
 		if (draggedCard.zone===toZone || !isValidMove(draggedCard.type, toZone)){
+			showDropErrorToast('Questa carta non può essere spostata lì')
 			draggedCard=null;
 			return;
 		}
@@ -84,6 +88,15 @@
 		draggedCard=null;
 	}
 
+	function showDropErrorToast(message: string){
+		dropErrorMessage=message;
+		showDropError= true;
+
+		setTimeout(() => {
+			showDropError = false;
+		}, 2000);
+	}
+
 </script>
 
 {#snippet zoneSection(title: string, list: typeof data.deck, limit: number, zone: Zone)}
@@ -91,7 +104,8 @@
 	<div 
 		role="region"
 		aria-label="Zona drop carte"
-		class="border border-gray-300 rounded-lg p-4 mx-6 flex flex-wrap gap-4 min-h-32"
+		class="border border-gray-300 rounded-lg p-4 mx-6 grid grid-cols-10 gap-2 min-h-32"
+
 		ondragover={(e)=>e.preventDefault()}
 		ondrop={()=>handleDrop(zone)}>
 		{#each list as deckCard}
@@ -100,7 +114,7 @@
 					<img 
 						src={deckCard.imageUrl} 
 						alt={deckCard.name} 
-						class="w-24 rounded-md shadow-sm"
+						class="w-full rounded-md shadow-sm"
 						draggable="true" 
 						ondragstart={()=>handleDragStart(deckCard.cardId, zone, deckCard.type)}
 						/>
@@ -123,7 +137,7 @@
 {@render zoneSection('Extra Deck', extraDeck, 15, 'extra')}
 {@render zoneSection('Side Deck', sideDeck, 15, 'side')}
 
-<div class="px-6">
+<div class="p-6 ">
 	<button onclick={drawFive} class="bg-amber-300 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400">
 		Pesca 5 Carte
 	</button>
@@ -131,9 +145,15 @@
 
 {#if drawnCards.length>0}
 	<h2 class="text-xl font-bold p-6 pb-2">Carte Pescate</h2>
-	<div class="flex flex-wrap gap-4 mx-6 mb-6">
+	<div class="border border-gray-300 rounded-lg p-4 mx-6 grid grid-cols-10 gap-2">
 		{#each drawnCards as card}
-			<img src={card.imageUrl} alt={card.name} class="w-24 rounded-md shadow-sm" />	
+			<img src={card.imageUrl} alt={card.name} class="w-full rounded-md shadow-sm" />	
 		{/each}
+	</div>
+{/if}
+
+{#if showDropError}
+	<div class="fixed bottom-6 right-6 bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg z-50">
+		{dropErrorMessage}
 	</div>
 {/if}
