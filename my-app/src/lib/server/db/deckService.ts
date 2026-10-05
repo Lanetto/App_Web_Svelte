@@ -136,3 +136,75 @@ export async function getDeckTotalCards(): Promise<number> {
         
         return result[0].total ?? 0;
 }
+
+export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zone) {
+    if (fromZone===toZone){
+        return {success: true};
+    }
+
+    const found = await db
+        .select()
+        .from(cards)
+        .where(eq(cards.id, cardId));
+    
+    if (found.length===0) {
+        return {success: false, message: 'Carta non trovata'};
+    }
+
+    const isExtraDeckCard=EXTRA_DECK_TYPES.includes(found[0].type);
+
+    if (toZone==='main' && isExtraDeckCard){
+        return {success: false, message: 'Questa carta appartiene all\'Extra Deck'};
+    }
+
+    if (toZone==='extra' && !isExtraDeckCard){
+        return{success: false, message:'Questa carta appartiene al Main Deck'};
+    }
+
+    const sourceRows=await db
+        .select()
+        .from(deckCards)
+        .where(and(eq(deckCards.cardId, cardId), eq(deckCards.zone, fromZone)));
+
+        if (sourceRows.length===0) {
+            return {success: false, message: 'Carta non trovata in quella zona'};
+        }
+
+        const targetTotal=await getZoneTotal(toZone);
+        
+        if (targetTotal>=LIMITS[toZone]) {
+            return {success: false, message: `${LABELS[toZone]} ha già raggiunto il massimo di ${LIMITS[toZone]} carte`};
+        }
+
+        const sourceRow=sourceRows[0];
+        if (sourceRow.quantity<=1) {
+            await db
+                .delete(deckCards)
+                .where(eq(deckCards.id, sourceRow.id));
+        }
+        else{
+            await db
+                .update(deckCards)
+                .set({quantity: sourceRow.quantity-1})
+                .where(eq(deckCards.id, sourceRow.id));
+        }
+
+        const targetRows= await db
+            .select()
+            .from(deckCards)
+            .where(and(eq(deckCards.cardId, cardId), eq(deckCards.zone, toZone)));
+
+        if (targetRows.length>0) {
+            await db
+                .update(deckCards)
+                .set({quantity: targetRows[0].quantity+1})
+                .where(eq(deckCards.id, targetRows[0].id));
+        }
+        else {
+            await db
+                .insert(deckCards)
+                .values({cardId, quantity: 1, zone: toZone});
+        }
+
+        return {success: true};
+}

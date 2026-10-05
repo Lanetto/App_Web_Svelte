@@ -1,6 +1,7 @@
-import {getDeck, getZoneTotal, removeCardFromDeck, type Zone} from '$lib/server/db/deckService';
+import {getDeck, getZoneTotal, removeCardFromDeck, moveCardToZone, type Zone} from '$lib/server/db/deckService';
 import { request } from 'http';
 import type { PageServerLoad, Actions } from './$types';
+import { form } from '$app/server';
 
 export const load: PageServerLoad = async () =>{
     const deck=await getDeck();
@@ -17,5 +18,14 @@ export const actions: Actions={
         await removeCardFromDeck(cardId, zone);
 
         return{succes:true};
+    },
+
+    moveCard: async ({request}) => {
+        const formData = await request.formData();
+        const cardId=Number(formData.get('cardId'));
+        const fromZone=formData.get('fromZone') as Zone;
+        const toZone=formData.get('toZone') as Zone;
+
+        return await moveCardToZone(cardId, fromZone, toZone);
     }
 };
