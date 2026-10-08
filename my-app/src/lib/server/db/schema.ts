@@ -1,4 +1,5 @@
 import {sqliteTable, integer, text} from "drizzle-orm/sqlite-core";
+import {ZONES} from '../../deckConfig';
 
 export const cards=sqliteTable("cards", {
     id: integer("id").primaryKey(),
@@ -17,5 +18,5 @@ export const deckCards= sqliteTable('deck_cards', {
     id: integer('id').primaryKey({autoIncrement:true}),
     cardId: integer('card_id').notNull().references(()=>cards.id),
     quantity: integer('quantity').notNull().default(1),
-    zone: text('zone', {enum:['main', 'extra', 'side']}).notNull().default('main')
+    zone:text('zone', {enum:ZONES}).notNull().default('main')
 });

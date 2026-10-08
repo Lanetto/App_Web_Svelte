@@ -1,4 +1,5 @@
-import {getDeck, getZoneTotal, removeCardFromDeck, moveCardToZone, type Zone} from '$lib/server/db/deckService';
+import {getDeck, removeCardFromDeck, moveCardToZone} from '$lib/server/db/deckService';
+import {type Zone} from '$lib/deckConfig';
 import { request } from 'http';
 import type { PageServerLoad, Actions } from './$types';
 import { form } from '$app/server';

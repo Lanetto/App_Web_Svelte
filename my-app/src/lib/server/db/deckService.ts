@@ -3,24 +3,20 @@ import { setDefaultCACertificates } from 'tls';
 import {db} from './index';
 import { cards, deckCards } from './schema';
 import { and, eq, sql } from 'drizzle-orm'
-
-export type Zone= 'main'|'extra'|'side';
+import { type Zone, type ZoneGroup, EXTRA_DECK_TYPES, GROUP_LABELS, GROUP_LIMITS, groupOf } from '$lib/deckConfig';
 
 const MAX_COPIES=3;
-const EXTRA_DECK_TYPES=['Fusion Monster', 'Synchro Monster', 'XYZ Monster', 'Link Monster'];
 
-const LIMITS: Record<Zone, number>={main:60, extra:15, side:15};
-const LABELS: Record<Zone, string>={main:'Main Deck', extra:'Extra Deck', side:'Side Deck'};
+export async function GetGroupTotal(group:ZoneGroup): Promise<number> {
+    const rows=await db
+        .select({zone: deckCards.zone, quantity: deckCards.quantity})
+        .from(deckCards);
 
-export async function getZoneTotal(zone: Zone): Promise<number> {
-    const result=await db
-        .select({total:sql<number>`sum(${deckCards.quantity})`})
-        .from(deckCards)
-        .where(eq(deckCards.zone, zone));
-
-        return result[0].total ?? 0;
-    
+    return rows
+        .filter((row)=>groupOf(row.zone)===group)
+        .reduce((sum, row)=>sum+row.quantity, 0);
 }
+
 
 export async function addCardToDeck(cardId: number, target?: string) {
 
@@ -37,11 +33,13 @@ export async function addCardToDeck(cardId: number, target?: string) {
         zone=EXTRA_DECK_TYPES.includes(found[0].type) ? 'extra' : 'main';
     }
 
-    const zoneTotal= await getZoneTotal(zone);
-    if (zoneTotal>=LIMITS[zone]) {
+    const group=groupOf(zone);
+    const groupTotal=await GetGroupTotal(group);
+
+    if (groupTotal>=GROUP_LIMITS[group]) {
         return {
             success:false,
-            message: `${LABELS[zone]} ha già raggiunto il massimo di ${LIMITS[zone]} carte`
+            message: `${GROUP_LABELS[group]} ha già raggiunto il massimo di ${GROUP_LIMITS[group]} carte`
         };
     }
 
@@ -75,9 +73,9 @@ export async function addCardToDeck(cardId: number, target?: string) {
 
     return{
         success:true,
-        zoneLabel: LABELS[zone],
-        total:zoneTotal+1,
-        limit:LIMITS[zone]
+        zoneLabel: GROUP_LABELS[group],
+        total:groupTotal+1,
+        limit:GROUP_LIMITS[group]
     };
 }
 
@@ -152,12 +150,14 @@ export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zon
     }
 
     const isExtraDeckCard=EXTRA_DECK_TYPES.includes(found[0].type);
+    const fromGroup=groupOf(fromZone);
+    const toGroup=groupOf(toZone);
 
-    if (toZone==='main' && isExtraDeckCard){
+    if (toGroup==='main' && isExtraDeckCard){
         return {success: false, message: 'Questa carta appartiene all\'Extra Deck'};
     }
 
-    if (toZone==='extra' && !isExtraDeckCard){
+    if (toGroup==='extra' && !isExtraDeckCard){
         return{success: false, message:'Questa carta appartiene al Main Deck'};
     }
 
@@ -170,10 +170,15 @@ export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zon
             return {success: false, message: 'Carta non trovata in quella zona'};
         }
 
-        const targetTotal=await getZoneTotal(toZone);
-        
-        if (targetTotal>=LIMITS[toZone]) {
-            return {success: false, message: `${LABELS[toZone]} ha già raggiunto il massimo di ${LIMITS[toZone]} carte`};
+        if(toGroup!==fromGroup){
+            const targetTotal=await GetGroupTotal(toGroup);
+
+            if(targetTotal>=GROUP_LIMITS[toGroup]){
+                return{
+                    success:false,
+                    message:  `${GROUP_LABELS[toGroup]} ha già raggiunto il massimo di ${GROUP_LIMITS[toGroup]} carte`
+                };
+            }
         }
 
         const sourceRow=sourceRows[0];

@@ -1,18 +1,15 @@
 <script lang="ts">
 	
 	import {enhance} from '$app/forms';
+	import {tick} from 'svelte'
 
 	import {invalidateAll} from '$app/navigation';
-	import type { Zone } from '$lib/server/db/deckService.js';
+	import { type Zone, EXTRA_DECK_TYPES, GROUP_LIMITS, ZONE_LABELS, groupOf } from '$lib/deckConfig';
 
 
 	let {data}=$props()
 
-	let mainDeck=$derived(data.deck.filter((deckCard) => deckCard.zone==='main'));
-
-	let extraDeck=$derived(data.deck.filter((deckCard)=>deckCard.zone==='extra'));
-
-	let sideDeck=$derived(data.deck.filter((deckCard)=>deckCard.zone==='side'));
+	let mainGroupCards=$derived(data.deck.filter((c)=>groupOf(c.zone)==='main'));
 
 	let showDropError = $state(false);
 	let dropErrorMessage = $state('');
@@ -42,10 +39,14 @@
 	}
 
 	let drawnCards=$state<typeof data.deck>([]);
+	let drawnSection: HTMLElement | undefined =$state();
 
-	function drawFive(){
-		const expanded=expandDeck(mainDeck);
+	async function drawFive(){
+		const expanded=expandDeck(mainGroupCards);
 		drawnCards=shuffle(expanded).slice(0, 5);
+
+		await tick();
+		drawnSection?.scrollIntoView({behavior: 'smooth', block: 'start'});
 	}
 
 	let draggedCard:{cardId: number; zone: Zone, type: string} | null=$state(null);
@@ -55,13 +56,14 @@
 	}
 
 	function isValidMove(cardType: string, toZone: Zone): boolean {
-		const isExtraDeckCard=['Fusion Monster', 'Synchro Monster', 'XYZ Monster', 'Link Monster'].includes(cardType);
+		const isExtraDeckCard=EXTRA_DECK_TYPES.includes(cardType);
+		const toGroup=groupOf(toZone);
 
-		if (toZone==='main' && isExtraDeckCard) {
+		if (toGroup==='main' && isExtraDeckCard) {
 			return false;
 		}
 
-		if(toZone==='extra' && !isExtraDeckCard) {
+		if(toGroup==='extra' && !isExtraDeckCard) {
 			return false;
 		}
 
@@ -99,11 +101,15 @@
 
 </script>
 
-{#snippet zoneSection(title: string, list: typeof data.deck, limit: number, zone: Zone)}
-	<h2 class="text-xl font-bold p-6 pb-2">{title} ({countCards(list)}/{limit})</h2>
+{#snippet zoneSection(zone: Zone)}
+	{@const list=data.deck.filter((c)=>c.zone===zone)}
+	{@const limit=zone==='extra'||zone==='side' ? GROUP_LIMITS[zone] : undefined}
+	<h2 class="text-xl font-bold p-6 pb-2">
+		{ZONE_LABELS[zone]} ({countCards(list)}{limit ? `/${limit}` : ''})
+	</h2>
 	<div 
 		role="region"
-		aria-label="Zona drop carte"
+		aria-label="{ZONE_LABELS[zone]}"
 		class="border border-gray-300 rounded-lg p-4 mx-6 grid grid-cols-10 gap-2 min-h-32"
 
 		ondragover={(e)=>e.preventDefault()}
@@ -121,7 +127,7 @@
 					<form method="POST" action="?/removeFromDeck" use:enhance>
 						<input type="hidden" name="cardId" value={deckCard.cardId} />
 						<input type="hidden" name="zone" value={zone} />
-						<button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-md font-medium hover:bg-red-700">
+						<button type="submit" class="w-full bg-red-500 text-white px-4 py-2 rounded-md font-medium hover:bg-red-700 truncate">
 							Rimuovi
 						</button>
 					</form>
@@ -133,9 +139,15 @@
 
 <h1 class="text-2xl font-bold p-6">Il Tuo Mazzo</h1>
 
-{@render zoneSection('Main Deck', mainDeck, 60, 'main')}
-{@render zoneSection('Extra Deck', extraDeck, 15, 'extra')}
-{@render zoneSection('Side Deck', sideDeck, 15, 'side')}
+{@render zoneSection('main')}
+{@render zoneSection('extra')}
+{@render zoneSection('side')}
+{@render zoneSection('engine')}
+{@render zoneSection('extender')}
+{@render zoneSection('starter')}
+{@render zoneSection('boardbreaker')}
+{@render zoneSection('handtrap')}
+{@render zoneSection('misc')}
 
 <div class="p-6 ">
 	<button onclick={drawFive} class="bg-amber-300 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400">
@@ -144,12 +156,15 @@
 </div>
 
 {#if drawnCards.length>0}
-	<h2 class="text-xl font-bold p-6 pb-2">Carte Pescate</h2>
-	<div class="border border-gray-300 rounded-lg p-4 mx-6 grid grid-cols-10 gap-2">
-		{#each drawnCards as card}
-			<img src={card.imageUrl} alt={card.name} class="w-full rounded-md shadow-sm" />	
-		{/each}
+	<div bind:this={drawnSection} class="pb-16">
+		<h2 class="text-xl font-bold p-6 pb-2">Carte Pescate</h2>
+			<div class="border border-gray-300 rounded-lg p-4 pb-2 mx-6 grid grid-cols-10 gap-2">
+				{#each drawnCards as card}
+					<img src={card.imageUrl} alt={card.name} class="w-full rounded-md shadow-sm" />	
+				{/each}
+			</div>
 	</div>
+	
 {/if}
 
 {#if showDropError}
