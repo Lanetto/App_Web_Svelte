@@ -3,7 +3,7 @@ import { setDefaultCACertificates } from 'tls';
 import {db} from './index';
 import { cards, deckCards } from './schema';
 import { and, eq, sql } from 'drizzle-orm'
-import { type Zone, type ZoneGroup, EXTRA_DECK_TYPES, GROUP_LABELS, GROUP_LIMITS, groupOf } from '$lib/deckConfig';
+import { type Zone, type ZoneGroup, EXTRA_DECK_TYPES, GROUP_LABELS, GROUP_LIMITS, groupOf, isRoleZone} from '$lib/deckConfig';
 
 const MAX_COPIES=3;
 
@@ -170,10 +170,14 @@ export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zon
             return {success: false, message: 'Carta non trovata in quella zona'};
         }
 
+        const sourceRow=sourceRows[0];
+
+        const ammount=isRoleZone(toZone) ? sourceRow.quantity:1;
+
         if(toGroup!==fromGroup){
             const targetTotal=await GetGroupTotal(toGroup);
 
-            if(targetTotal>=GROUP_LIMITS[toGroup]){
+            if(targetTotal + ammount>=GROUP_LIMITS[toGroup]){
                 return{
                     success:false,
                     message:  `${GROUP_LABELS[toGroup]} ha già raggiunto il massimo di ${GROUP_LIMITS[toGroup]} carte`
@@ -181,8 +185,8 @@ export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zon
             }
         }
 
-        const sourceRow=sourceRows[0];
-        if (sourceRow.quantity<=1) {
+        
+        if (sourceRow.quantity<=ammount) {
             await db
                 .delete(deckCards)
                 .where(eq(deckCards.id, sourceRow.id));
@@ -190,7 +194,7 @@ export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zon
         else{
             await db
                 .update(deckCards)
-                .set({quantity: sourceRow.quantity-1})
+                .set({quantity: sourceRow.quantity-ammount})
                 .where(eq(deckCards.id, sourceRow.id));
         }
 
@@ -202,13 +206,13 @@ export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zon
         if (targetRows.length>0) {
             await db
                 .update(deckCards)
-                .set({quantity: targetRows[0].quantity+1})
+                .set({quantity: targetRows[0].quantity+ammount})
                 .where(eq(deckCards.id, targetRows[0].id));
         }
         else {
             await db
                 .insert(deckCards)
-                .values({cardId, quantity: 1, zone: toZone});
+                .values({cardId, quantity: ammount, zone: toZone});
         }
 
         return {success: true};

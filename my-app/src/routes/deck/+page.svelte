@@ -7,12 +7,15 @@
 	import { type Zone, EXTRA_DECK_TYPES, GROUP_LIMITS, ZONE_LABELS, groupOf } from '$lib/deckConfig';
 
 
+
 	let {data}=$props()
 
 	let mainGroupCards=$derived(data.deck.filter((c)=>groupOf(c.zone)==='main'));
 
 	let showDropError = $state(false);
 	let dropErrorMessage = $state('');
+
+	const HAND_SIZE=5;
     
 	const countCards=(list: {quantity: number}[])=>
 		list.reduce((sum, deckCard)=>sum+deckCard.quantity, 0);
@@ -39,20 +42,43 @@
 	}
 
 	let drawnCards=$state<typeof data.deck>([]);
+	let library=$state<typeof data.deck>([]);
 	let drawnSection: HTMLElement | undefined =$state();
 
-	async function drawFive(){
-		const expanded=expandDeck(mainGroupCards);
-		drawnCards=shuffle(expanded).slice(0, 5);
-
+	async function scrollToDrawn() {
 		await tick();
 		drawnSection?.scrollIntoView({behavior: 'smooth', block: 'start'});
+	}
+
+	async function drawFive(){
+		const shuffled=shuffle(expandDeck(mainGroupCards));
+		drawnCards=shuffled.slice(0, HAND_SIZE);
+		library=shuffled.slice(HAND_SIZE);
+
+		await scrollToDrawn();
+	}
+
+	async function drawOne() {
+		if (drawnCards.length===0 && library.length===0) {
+			library=shuffle(expandDeck(mainGroupCards));
+		}
+
+		if (library.length===0) {
+			showDropErrorToast('Non ci sono più carte nel mazzo');
+			return;
+		}
+
+		drawnCards=[...drawnCards, library[0]];
+		library=library.slice(1);
+
+		await scrollToDrawn();
 	}
 
 	let draggedCard:{cardId: number; zone: Zone, type: string} | null=$state(null);
 
 	function handleDragStart(cardId: number, zone: Zone, type: string){
 		draggedCard={cardId, zone, type};
+		startAutoScroll();
 	}
 
 	function isValidMove(cardType: string, toZone: Zone): boolean {
@@ -73,7 +99,12 @@
 	async function handleDrop(toZone: Zone) {
 		if (!draggedCard) return;
 
-		if (draggedCard.zone===toZone || !isValidMove(draggedCard.type, toZone)){
+		if (draggedCard.zone===toZone){
+			draggedCard=null;
+			return;
+		}
+
+		if (!isValidMove(draggedCard.type, toZone)){
 			showDropErrorToast('Questa carta non può essere spostata lì')
 			draggedCard=null;
 			return;
@@ -99,14 +130,79 @@
 		}, 2000);
 	}
 
+	let scrollDirection=0;
+	let scrollTimer: ReturnType<typeof setInterval> | null=null;
+
+	function startAutoScroll() {
+		if(scrollTimer) return;
+
+		scrollTimer=setInterval(()=> {
+			if (scrollDirection!==0){
+				window.scrollBy(0, scrollDirection*15);
+			}
+		}, 16);
+	}
+
+	function stopAutoScroll() {
+		if(scrollTimer) clearInterval(scrollTimer);
+		scrollTimer=null;
+		scrollDirection=0;
+	}
+
+	function handleWindowDragOver(e: DragEvent){
+		if(!draggedCard) return;
+
+		const EDGE=120;
+
+		if (e.clientY<EDGE) {
+			scrollDirection=-1;
+		}
+		else if (window.innerHeight-e.clientY<EDGE){
+			scrollDirection=1;
+		}
+		else {
+			scrollDirection=0;
+		}
+	}
+
+	function drawProbability(copies: number, deckSize: number, hand= HAND_SIZE): number {
+		if (deckSize===0 || copies===0) {
+			return 0;
+		}
+
+		const n=Math.min(hand, deckSize);
+		let probNone=1;
+
+		for ( let i=0; i<n; i++){
+			const remaining=deckSize-copies-i;
+			if (remaining<=0) {
+				probNone=0;
+				break;
+			}
+			probNone *= remaining/(deckSize-i);
+
+		}
+
+		return 1-probNone;
+	}
+
 </script>
 
 {#snippet zoneSection(zone: Zone)}
 	{@const list=data.deck.filter((c)=>c.zone===zone)}
 	{@const limit=zone==='extra'||zone==='side' ? GROUP_LIMITS[zone] : undefined}
-	<h2 class="text-xl font-bold p-6 pb-2">
-		{ZONE_LABELS[zone]} ({countCards(list)}{limit ? `/${limit}` : ''})
-	</h2>
+	{@const showOdds=zone!== 'main' && groupOf(zone)==='main'}
+	{@const odds=drawProbability(countCards(list), countCards(mainGroupCards))}
+	<div class="flex items-center gap-3 p-6 pb-2">
+		<h2 class="text-xl font-bold">
+			{ZONE_LABELS[zone]} ({countCards(list)}{limit ? `/${limit}` : ''})
+		</h2>
+		{#if showOdds}
+			<span class="bg-indigo-100 text-indigo-700 text-sm font-medium px-2 py-1 rounded-full">
+				{(odds*100).toFixed(1)}%
+			</span>
+		{/if}
+	</div>
 	<div 
 		role="region"
 		aria-label="{ZONE_LABELS[zone]}"
@@ -153,6 +249,9 @@
 	<button onclick={drawFive} class="bg-amber-300 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400">
 		Pesca 5 Carte
 	</button>
+	<button onclick={drawOne} class="bg-amber-200 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-300">
+		Pesca 1 Carta
+	</button>
 </div>
 
 {#if drawnCards.length>0}
@@ -172,3 +271,9 @@
 		{dropErrorMessage}
 	</div>
 {/if}
+
+<svelte:window
+	ondragover={handleWindowDragOver}
+	ondragend={stopAutoScroll}
+	ondrop={stopAutoScroll}
+/>

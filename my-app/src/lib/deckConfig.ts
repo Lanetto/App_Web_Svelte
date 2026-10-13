@@ -31,3 +31,9 @@ export const ZONE_LABELS: Record<Zone, string> = {
     extra: 'Extra Deck',
     side: 'Side Deck'
 };
+
+export const ROLE_ZONES: Zone[]=['engine', 'extender', 'starter', 'boardbreaker', 'handtrap', 'misc'];
+
+export function isRoleZone(zone: Zone): boolean {
+    return ROLE_ZONES.includes(zone);
+}
