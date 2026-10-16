@@ -5,44 +5,21 @@
 
 	import {invalidateAll} from '$app/navigation';
 	import { type Zone, EXTRA_DECK_TYPES, GROUP_LIMITS, ZONE_LABELS, groupOf } from '$lib/deckConfig';
+	import type {SubmitFunction} from '@sveltejs/kit'
 
+	const HAND_SIZE=5;
 
-
-	let {data}=$props()
+	let {data, form}=$props()
 
 	let mainGroupCards=$derived(data.deck.filter((c)=>groupOf(c.zone)==='main'));
 
 	let showDropError = $state(false);
 	let dropErrorMessage = $state('');
-
-	const HAND_SIZE=5;
     
 	const countCards=(list: {quantity: number}[])=>
 		list.reduce((sum, deckCard)=>sum+deckCard.quantity, 0);
 
-	function expandDeck(deck: typeof data.deck){
-		const expanded: typeof data.deck = [];
-		for (const card of deck){
-			for (let i=0; i<card.quantity; i++){
-				expanded.push(card);
-			}
-		}
-
-		return expanded;
-	}
-
-	function shuffle<T>(array: T[]): T[] {
-		const copy = [...array];
-		for ( let i=copy.length-1; i>0; i--){
-			const j= Math.floor(Math.random()* (i+1));
-			[copy[i], copy[j]]=[copy[j], copy[i]];
-		}
-
-		return copy;
-	}
-
 	let drawnCards=$state<typeof data.deck>([]);
-	let library=$state<typeof data.deck>([]);
 	let drawnSection: HTMLElement | undefined =$state();
 
 	async function scrollToDrawn() {
@@ -50,29 +27,16 @@
 		drawnSection?.scrollIntoView({behavior: 'smooth', block: 'start'});
 	}
 
-	async function drawFive(){
-		const shuffled=shuffle(expandDeck(mainGroupCards));
-		drawnCards=shuffled.slice(0, HAND_SIZE);
-		library=shuffled.slice(HAND_SIZE);
-
+	const afterDrawn: SubmitFunction = () => async ({update}) =>{
+		await update();
 		await scrollToDrawn();
 	}
 
-	async function drawOne() {
-		if (drawnCards.length===0 && library.length===0) {
-			library=shuffle(expandDeck(mainGroupCards));
+	$effect(() => {
+		if (form?.message) {
+			showDropErrorToast(form.message);
 		}
-
-		if (library.length===0) {
-			showDropErrorToast('Non ci sono più carte nel mazzo');
-			return;
-		}
-
-		drawnCards=[...drawnCards, library[0]];
-		library=library.slice(1);
-
-		await scrollToDrawn();
-	}
+	})
 
 	let draggedCard:{cardId: number; zone: Zone, type: string} | null=$state(null);
 
@@ -246,17 +210,20 @@
 {@render zoneSection('misc')}
 
 <div class="p-6 ">
-	<button onclick={drawFive} class="bg-amber-300 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400">
+	<form method="POST" action="?/drawFive" use:enhance={afterDrawn}>
+		<button class="bg-amber-300 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400">
 		Pesca 5 Carte
-	</button>
-	<button onclick={drawOne} class="bg-amber-200 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-300">
-		Pesca 1 Carta
-	</button>
+		</button>
+		<button class="bg-amber-200 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-300">
+			Pesca 1 Carta
+		</button>
+	</form>
+	
 </div>
 
-{#if drawnCards.length>0}
+{#if data.hand.length>0}
 	<div bind:this={drawnSection} class="pb-16">
-		<h2 class="text-xl font-bold p-6 pb-2">Carte Pescate</h2>
+		<h2 class="text-xl font-bold p-6 pb-2">Carte Pescate ({data.remaining} rimaste nel mazzo)</h2>
 			<div class="border border-gray-300 rounded-lg p-4 pb-2 mx-6 grid grid-cols-10 gap-2">
 				{#each drawnCards as card}
 					<img src={card.imageUrl} alt={card.name} class="w-full rounded-md shadow-sm" />	

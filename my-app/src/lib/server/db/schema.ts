@@ -16,7 +16,14 @@ export const cards=sqliteTable("cards", {
 
 export const deckCards= sqliteTable('deck_cards', {
     id: integer('id').primaryKey({autoIncrement:true}),
+    sessionId:text('session_id').notNull().default(''),
     cardId: integer('card_id').notNull().references(()=>cards.id),
     quantity: integer('quantity').notNull().default(1),
     zone:text('zone', {enum:ZONES}).notNull().default('main')
 });
+
+export const drawStates=sqliteTable('draw_states', {
+    sessionId:text('session_id').primaryKey(),
+    hand:text('hand', {mode: 'json'}).$type<number[]>().notNull(),
+    library:text('library', {mode: 'json'}).$type<number[]>().notNull()
+})

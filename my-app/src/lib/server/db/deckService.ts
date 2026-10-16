@@ -5,12 +5,15 @@ import { cards, deckCards } from './schema';
 import { and, eq, sql } from 'drizzle-orm'
 import { type Zone, type ZoneGroup, EXTRA_DECK_TYPES, GROUP_LABELS, GROUP_LIMITS, groupOf, isRoleZone} from '$lib/deckConfig';
 
+
+const ofSession=(sessionId:string)=>eq(deckCards.sessionId, sessionId);
 const MAX_COPIES=3;
 
-export async function GetGroupTotal(group:ZoneGroup): Promise<number> {
+export async function GetGroupTotal(sessionId: string, group:ZoneGroup): Promise<number> {
     const rows=await db
         .select({zone: deckCards.zone, quantity: deckCards.quantity})
-        .from(deckCards);
+        .from(deckCards)
+        .where(ofSession(sessionId));
 
     return rows
         .filter((row)=>groupOf(row.zone)===group)
@@ -18,7 +21,7 @@ export async function GetGroupTotal(group:ZoneGroup): Promise<number> {
 }
 
 
-export async function addCardToDeck(cardId: number, target?: string) {
+export async function addCardToDeck(sessionId: string, cardId: number, target?: string) {
 
     const found=await db
         .select()
@@ -34,7 +37,7 @@ export async function addCardToDeck(cardId: number, target?: string) {
     }
 
     const group=groupOf(zone);
-    const groupTotal=await GetGroupTotal(group);
+    const groupTotal=await GetGroupTotal(sessionId, group);
 
     if (groupTotal>=GROUP_LIMITS[group]) {
         return {
@@ -46,7 +49,7 @@ export async function addCardToDeck(cardId: number, target?: string) {
     const rows= await db
     .select()
     .from(deckCards)
-    .where(eq(deckCards.cardId, cardId));
+    .where(and(ofSession(sessionId), eq(deckCards.cardId, cardId)));
 
     const totalCopies=rows.reduce((sum, row)=> sum+row.quantity, 0);
 
@@ -68,7 +71,7 @@ export async function addCardToDeck(cardId: number, target?: string) {
     else {
         await db
             .insert(deckCards)
-            .values({cardId, quantity:1, zone});
+            .values({sessionId, cardId, quantity:1, zone});
     }
 
     return{
@@ -81,11 +84,11 @@ export async function addCardToDeck(cardId: number, target?: string) {
 
 
 
-export async function removeCardFromDeck(cardId: number, zone: Zone) {
+export async function removeCardFromDeck(sessionId: string, cardId: number, zone: Zone) {
 	const existing = await db
 		.select()
 		.from(deckCards)
-		.where(and(eq(deckCards.cardId, cardId), eq(deckCards.zone, zone)));
+		.where(and(ofSession(sessionId), eq(deckCards.cardId, cardId), eq(deckCards.zone, zone)));
 
 	if (existing.length === 0) {
 		return; 
@@ -105,7 +108,7 @@ export async function removeCardFromDeck(cardId: number, zone: Zone) {
 	}
 }
 
-export async function getDeck() {
+export async function getDeck(sessionId: string) {
     const result=await db
         .select({
             id:deckCards.id,
@@ -122,7 +125,8 @@ export async function getDeck() {
             zone: deckCards.zone
         })
         .from(deckCards)
-        .innerJoin(cards, eq(deckCards.cardId, cards.id));
+        .innerJoin(cards, eq(deckCards.cardId, cards.id))
+        .where(ofSession(sessionId));
 
         return result;
 }
@@ -135,7 +139,7 @@ export async function getDeckTotalCards(): Promise<number> {
         return result[0].total ?? 0;
 }
 
-export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zone) {
+export async function moveCardToZone(sessionId: string, cardId: number, fromZone: Zone, toZone: Zone) {
     if (fromZone===toZone){
         return {success: true};
     }
@@ -164,7 +168,7 @@ export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zon
     const sourceRows=await db
         .select()
         .from(deckCards)
-        .where(and(eq(deckCards.cardId, cardId), eq(deckCards.zone, fromZone)));
+        .where(and(ofSession(sessionId), eq(deckCards.cardId, cardId), eq(deckCards.zone, fromZone)));
 
         if (sourceRows.length===0) {
             return {success: false, message: 'Carta non trovata in quella zona'};
@@ -175,7 +179,7 @@ export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zon
         const ammount=isRoleZone(toZone) ? sourceRow.quantity:1;
 
         if(toGroup!==fromGroup){
-            const targetTotal=await GetGroupTotal(toGroup);
+            const targetTotal=await GetGroupTotal(sessionId, toGroup);
 
             if(targetTotal + ammount>=GROUP_LIMITS[toGroup]){
                 return{
@@ -201,7 +205,7 @@ export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zon
         const targetRows= await db
             .select()
             .from(deckCards)
-            .where(and(eq(deckCards.cardId, cardId), eq(deckCards.zone, toZone)));
+            .where(and(ofSession(sessionId), eq(deckCards.cardId, cardId), eq(deckCards.zone, toZone)));
 
         if (targetRows.length>0) {
             await db
@@ -212,7 +216,7 @@ export async function moveCardToZone(cardId: number, fromZone: Zone, toZone: Zon
         else {
             await db
                 .insert(deckCards)
-                .values({cardId, quantity: ammount, zone: toZone});
+                .values({sessionId, cardId, quantity: ammount, zone: toZone});
         }
 
         return {success: true};

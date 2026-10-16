@@ -59,12 +59,12 @@ export const load: PageServerLoad = async ({url}) => {
 };  
 
 export const actions: Actions={
-    addToDeck: async ({request})=>{
+    addToDeck: async ({request, locals})=>{
         const formData=await request.formData();
         const cardId=Number(formData.get('cardId'));
         const target=formData.get('target')?.toString();
 
-        const result=await addCardToDeck(cardId, target);
+        const result=await addCardToDeck(locals.sessionId, cardId, target);
 
         return result;
     }
