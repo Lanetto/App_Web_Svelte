@@ -214,6 +214,8 @@
 		<button class="bg-amber-300 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400">
 		Pesca 5 Carte
 		</button>
+	</form>
+	<form method="POST" action="?/drawOne" use:enhance={afterDrawn}>
 		<button class="bg-amber-200 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-300">
 			Pesca 1 Carta
 		</button>
@@ -225,7 +227,7 @@
 	<div bind:this={drawnSection} class="pb-16">
 		<h2 class="text-xl font-bold p-6 pb-2">Carte Pescate ({data.remaining} rimaste nel mazzo)</h2>
 			<div class="border border-gray-300 rounded-lg p-4 pb-2 mx-6 grid grid-cols-10 gap-2">
-				{#each drawnCards as card}
+				{#each data.hand as card}
 					<img src={card.imageUrl} alt={card.name} class="w-full rounded-md shadow-sm" />	
 				{/each}
 			</div>

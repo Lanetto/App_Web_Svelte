@@ -5,7 +5,7 @@ export const ZONES=[
 export type Zone=(typeof ZONES)[number];
 export type ZoneGroup='main' | 'extra' | 'side';
 
-export const EXTRA_DECK_TYPES=['Fusion Monster', 'Synchro Monster', 'XYZ Monster', 'Link Monster'];
+export const EXTRA_DECK_TYPES=['Fusion Monster', 'Synchro Monster', 'XYZ Monster', 'Link Monster', 'Synchro Tuner Monster', 'Fusion Tuner Monster'];
 
 export function groupOf(zone: Zone): ZoneGroup{
     if (zone==='extra') return 'extra';

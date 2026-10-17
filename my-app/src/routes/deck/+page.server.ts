@@ -28,5 +28,9 @@ export const actions: Actions={
         const toZone=formData.get('toZone') as Zone;
 
         return await moveCardToZone(locals.sessionId, cardId, fromZone, toZone);
-    }
+    },
+
+    drawFive: async ({ locals }) => drawHand(locals.sessionId),
+    
+    drawOne: async ({ locals }) => drawOneCard(locals.sessionId)    
 };
