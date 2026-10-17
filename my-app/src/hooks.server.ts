@@ -1,4 +1,10 @@
 import type { Handle } from "@sveltejs/kit";
+import {building} from '$app/environment';
+import { startScheduler } from "$lib/server/scheduler";
+
+if (!building) {
+    startScheduler();
+}
 
 export const handle: Handle = async ({event, resolve}) =>{
     let sessionId=event.cookies.get('session');

@@ -27,3 +27,11 @@ export const drawStates=sqliteTable('draw_states', {
     hand:text('hand', {mode: 'json'}).$type<number[]>().notNull(),
     library:text('library', {mode: 'json'}).$type<number[]>().notNull()
 })
+
+export const syncState=sqliteTable('sync_state', {
+    id: integer('id').primaryKey(),
+    lastSyncAt: integer('last_sync_at', {mode: 'timestamp'}),
+    dbVersion: text('db_version'),
+    cardCount: integer('card_count'),
+    lastError: text('last_error')
+});
